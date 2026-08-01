@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리 캘린더</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF6EF;
+    --ink:#2E3A38;
+    --ink-soft:#6B7573;
+    --line:#DDD5C7;
+    --me:#2F6FED;
+    --spouse:#D6249B;
+    --both:#2E9E5B;
+    --hs:#E2711D;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR', sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 80px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
+  .month-title{font-family:'Gowun Batang', serif;font-size:30px;font-weight:700;letter-spacing:-0.5px;}
+  .year-btn{font-size:15px;color:var(--ink-soft);font-family:'Noto Sans KR', sans-serif;font-weight:500;margin-left:6px;border:none;background:none;cursor:pointer;padding:2px 4px;border-radius:6px;}
+  .year-btn:active{background:var(--line);}
+  .nav-btns{display:flex;gap:8px;}
+  .nav-btns button{border:1px solid var(--line);background:#fff;width:34px;height:34px;border-radius:50%;font-size:16px;color:var(--ink);cursor:pointer;}
+  .nav-btns button:active{background:var(--line);}
+  .thread{height:1px;background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 11px);margin:14px 0 18px;}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cell{position:relative;min-height:70px;border-radius:12px;padding:6px 3px 4px;background:#fff;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;overflow:hidden;}
+  .cell.empty{background:transparent;cursor:default;}
+  .cell .num{font-size:12.5px;color:var(--ink);}
+  .cell.today .num{display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-weight:600;}
+  .cell.sun .num{color:#B5484F;}
+  .cell.sat .num{color:#4E6E9E;}
+  .cell.sel{border:1px solid var(--ink);}
+  .cell.other-month{opacity:0.38;}
+  .cell.other-month.today .num{background:var(--ink-soft);}
+  .bars{width:100%;display:flex;flex-direction:column;gap:2px;}
+  .bar{font-size:8.5px;line-height:13px;color:#fff;border-radius:4px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;box-sizing:border-box;text-align:left;}
+  .bar.me{background:var(--me);}
+  .bar.spouse{background:var(--spouse);}
+  .bar.both{background:var(--both);}
+  .bar.hs{background:var(--hs);}
+  .more-tag{font-size:8px;color:var(--ink-soft);text-align:center;}
+  .dot.me{background:var(--me);}
+  .dot.spouse{background:var(--spouse);}
+  .dot.both{background:var(--both);}
+  .dot.hs{background:var(--hs);}
+  .legend{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--ink-soft);margin-top:16px;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .day-panel{margin-top:22px;}
+  .day-panel h3{font-family:'Gowun Batang', serif;font-size:18px;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .add-btn{border:none;background:var(--ink);color:#fff;font-size:13px;padding:6px 12px;border-radius:20px;cursor:pointer;}
+  .event-item{display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px;border-left:4px solid var(--line);}
+  .event-item.me{border-left-color:var(--me);}
+  .event-item.spouse{border-left-color:var(--spouse);}
+  .event-item.both{border-left-color:var(--both);}
+  .event-item.hs{border-left-color:var(--hs);}
+  .event-item .who{font-size:11px;font-weight:600;color:var(--ink-soft);white-space:nowrap;padding-top:1px;}
+  .event-item .body{flex:1;}
+  .event-item .title{font-size:14px;font-weight:500;}
+  .event-item .time{font-size:11.5px;color:var(--ink-soft);margin-top:1px;}
+  .event-item .memo{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .event-item .del{border:none;background:none;color:var(--ink-soft);font-size:16px;cursor:pointer;padding:0 2px;}
+  .empty-note{font-size:13px;color:var(--ink-soft);text-align:center;padding:18px 0;}
+  .modal-bg{position:fixed;inset:0;background:rgba(46,58,56,0.35);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal{background:var(--paper);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 20px 28px;}
+  .modal h4{font-family:'Gowun Batang', serif;font-size:18px;margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;}
+  .field input, .field textarea, .field select{width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit;color:var(--ink);}
+  .field textarea{resize:none;height:56px;}
+  .time-picker{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:10px;height:120px;overflow:hidden;}
+  .wheel{height:120px;width:56px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .wheel::-webkit-scrollbar{display:none;}
+  .wheel-spacer{height:40px;}
+  .wheel-item{height:40px;line-height:40px;text-align:center;font-size:20px;font-weight:600;color:var(--ink-soft);scroll-snap-align:center;font-family:monospace;}
+  .wheel-item.active{color:var(--ink);font-size:23px;}
+  .time-picker .colon{font-size:22px;font-weight:700;color:var(--ink-soft);}
+  .wheel-highlight{position:absolute;left:8px;right:8px;top:50%;transform:translateY(-50%);height:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);pointer-events:none;}
+  .remind-note{font-size:11px;color:var(--ink-soft);margin-top:5px;}
+  .who-select{display:flex;gap:6px;}
+  .who-select button{flex:1;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12.5px;cursor:pointer;color:var(--ink-soft);}
+  .who-select button.active[data-who="me"]{background:var(--me);color:#fff;border-color:var(--me);}
+  .who-select button.active[data-who="spouse"]{background:var(--spouse);color:#fff;border-color:var(--spouse);}
+  .who-select button.active[data-who="both"]{background:var(--both);color:#fff;border-color:var(--both);}
+  .who-select button.active[data-who="hs"]{background:var(--hs);color:#fff;border-color:var(--hs);}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+  .modal-actions button{flex:1;padding:11px 0;border-radius:12px;border:none;font-size:14px;cursor:pointer;}
+  .cancel-btn{background:#fff;border:1px solid var(--line) !important;color:var(--ink-soft);}
+  .save-btn{background:var(--ink);color:#fff;}
+  .sync-note{text-align:center;font-size:11px;color:var(--ink-soft);margin-top:10px;}
+  .hidden{display:none !important;}
+  .setup-warning{background:#FFF3E0;border:1px solid #E3A857;color:#5c4419;font-size:12.5px;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.5;}
+  .year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:320px;overflow-y:auto;}
+  .year-grid button{padding:12px 0;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:15px;cursor:pointer;color:var(--ink);}
+  .year-grid button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .edit-btn{border:none;background:none;color:var(--ink-soft);font-size:14px;cursor:pointer;padding:0 2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="setupWarning" class="setup-warning hidden">
+    ⚠️ firebaseConfig가 아직 설정되지 않았어요. 코드 상단의 <code>firebaseConfig</code> 값을 본인의 Firebase 프로젝트 설정으로 바꿔주세요.
+  </div>
+
+  <header>
+    <div class="month-title"><span id="monthNum"></span>월<button class="year-btn" id="yearBtn"><span id="yearNum"></span></button></div>
+    <div class="nav-btns">
+      <button id="prevBtn">‹</button>
+      <button id="nextBtn">›</button>
+    </div>
+  </header>
+  <div class="thread"></div>
+
+  <div class="weekdays">
+    <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="legend">
+    <span><span class="dot me"></span>원섭</span>
+    <span><span class="dot spouse"></span>하영</span>
+    <span><span class="dot both"></span>함께</span>
+    <span><span class="dot hs"></span>해솔</span>
+  </div>
+
+  <div class="day-panel">
+    <h3><span id="selDateLabel"></span><button class="add-btn" id="addBtn">+ 일정 추가</button></h3>
+    <div id="eventList"></div>
+  </div>
+
+  <div class="sync-note" id="statusNote">불러오는 중…</div>
+</div>
+
+<div class="modal-bg hidden" id="modalBg">
+  <div class="modal">
+    <h4 id="modalTitle">새 일정</h4>
+    <div class="field">
+      <label>누구 일정인가요?</label>
+      <div class="who-select">
+        <button data-who="me" class="active">원섭</button>
+        <button data-who="spouse">하영</button>
+        <button data-who="both">함께</button>
+        <button data-who="hs">해솔</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>일정 제목</label>
+      <input id="titleInput" placeholder="예: 아기 예방접종">
+    </div>
+    <div class="field">
+      <label>시간 (스크롤로 조절)</label>
+      <div class="time-picker">
+        <div class="wheel" id="hourWheel"></div>
+        <span class="colon">:</span>
+        <div class="wheel" id="minWheel"></div>
+        <div class="wheel-highlight"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>알림</label>
+      <select id="remindSelect">
+        <option value="">알림 없음</option>
+        <option value="0">정시</option>
+        <option value="10">10분 전</option>
+        <option value="30">30분 전</option>
+        <option value="60">1시간 전</option>
+        <option value="1440">하루 전</option>
+      </select>
+      <div class="remind-note">이 화면을 열어둔 기기에서만 알림이 울려요</div>
+    </div>
+    <div class="field">
+      <label>메모</label>
+      <textarea id="memoInput" placeholder="장소, 준비물 등"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" id="cancelBtn">취소</button>
+      <button class="save-btn" id="saveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg hidden" id="yearModalBg">
+  <div class="modal">
+    <h4>연도 선택</h4>
+    <div class="year-grid" id="yearGrid"></div>
+    <div class="modal-actions">
+      <button class="cancel-btn" id="yearCancelBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  ▼▼▼ 여기 firebaseConfig 값을 본인의 Firebase 프로젝트 설정으로 교체하세요 ▼▼▼
+  Firebase 콘솔 > 프로젝트 설정 > "내 앱"에서 복사한 값을 그대로 붙여넣으면 됩니다.
+-->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAixyFeL813BFuIJhqhtO5c-ijLocJW0u8",
+    authDomain: "family-calendar-55149.firebaseapp.com",
+    projectId: "family-calendar-55149",
+    storageBucket: "family-calendar-55149.firebasestorage.app",
+    messagingSenderId: "570832112330",
+    appId: "1:570832112330:web:001e906abe15bfb5248233"
+  };
+
+  const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('여기에');
+
+  let db = null;
+  let eventsDocRef = null;
+
+  if(isConfigured){
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    eventsDocRef = doc(db, "coupleCalendar", "events");
+  } else {
+    document.getElementById('setupWarning').classList.remove('hidden');
+  }
+
+  const WHO_LABEL = {me:'원섭', spouse:'하영', both:'함께', hs:'해솔'};
+  let events = {};
+  let cursor = new Date();
+  cursor.setDate(1);
+  let selectedDate = keyFor(new Date());
+  let selectedWho = 'me';
+  let editingId = null;
+
+  function pad(n){return n<10?'0'+n:''+n;}
+  function keyFor(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+
+  async function initData(){
+    const statusNote = document.getElementById('statusNote');
+    if(!isConfigured){
+      try{
+        const raw = localStorage.getItem('couple-calendar-events');
+        events = raw ? JSON.parse(raw) : {};
+      }catch(e){ events = {}; }
+      statusNote.textContent = 'Firebase 설정 전이라 이 기기에만 저장돼요.';
+      render();
+      return;
+    }
+    statusNote.textContent = '실시간으로 배우자와 동기화돼요.';
+    // 실시간 구독: 상대방이 추가한 일정도 자동으로 반영됨
+    onSnapshot(eventsDocRef, (snap)=>{
+      events = snap.exists() ? (snap.data().data || {}) : {};
+      render();
+    }, (err)=>{
+      statusNote.textContent = '동기화 오류: Firestore 규칙을 확인해주세요.';
+    });
+  }
+
+  async function persist(){
+    if(!isConfigured){
+      try{ localStorage.setItem('couple-calendar-events', JSON.stringify(events)); }catch(e){}
+      render();
+      return;
+    }
+    try{
+      await setDoc(eventsDocRef, { data: events });
+    }catch(e){
+      document.getElementById('statusNote').textContent = '저장 실패: ' + e.message;
+    }
+  }
+
+  function buildDayCell(dateObj, otherMonth, todayKey){
+    const dk = keyFor(dateObj);
+    const dow = dateObj.getDay();
+    const dayList = events[dk] || [];
+    const cell = document.createElement('div');
+    cell.className = 'cell'
+      + (dk===todayKey ? ' today' : '')
+      + (dow===0 ? ' sun' : '')
+      + (dow===6 ? ' sat' : '')
+      + (dk===selectedDate ? ' sel' : '')
+      + (otherMonth ? ' other-month' : '');
+    cell.innerHTML = '<div class="num">'+dateObj.getDate()+'</div>';
+    if(dayList.length>0){
+      const bars = document.createElement('div');
+      bars.className = 'bars';
+      const maxShow = 2;
+      dayList.slice(0,maxShow).forEach(e=>{
+        const bar = document.createElement('div');
+        bar.className = 'bar '+e.who;
+        bar.textContent = e.title;
+        bars.appendChild(bar);
+      });
+      if(dayList.length>maxShow){
+        const more = document.createElement('div');
+        more.className = 'more-tag';
+        more.textContent = '+'+(dayList.length-maxShow);
+        bars.appendChild(more);
+      }
+      cell.appendChild(bars);
+    }
+    cell.addEventListener('click', ()=>{
+      selectedDate = dk;
+      if(otherMonth){ cursor = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1); }
+      render();
+    });
+    return cell;
+  }
+
+  function render(){
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    document.getElementById('monthNum').textContent = (month+1);
+    document.getElementById('yearNum').textContent = year;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const prevMonthDaysCount = new Date(year, month, 0).getDate();
+    const todayKey = keyFor(new Date());
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    // 지난달 마지막 며칠 (흐리게)
+    for(let i=firstDay-1; i>=0; i--){
+      const d = prevMonthDaysCount - i;
+      const dateObj = new Date(year, month-1, d);
+      grid.appendChild(buildDayCell(dateObj, true, todayKey));
+    }
+    // 이번달
+    for(let d=1; d<=daysInMonth; d++){
+      const dateObj = new Date(year, month, d);
+      grid.appendChild(buildDayCell(dateObj, false, todayKey));
+    }
+    // 다음달 첫 며칠 (흐리게), 마지막 주를 꽉 채움
+    const totalSoFar = firstDay + daysInMonth;
+    const remainder = totalSoFar % 7;
+    const trailingCount = remainder===0 ? 0 : 7-remainder;
+    for(let d=1; d<=trailingCount; d++){
+      const dateObj = new Date(year, month+1, d);
+      grid.appendChild(buildDayCell(dateObj, true, todayKey));
+    }
+
+    document.getElementById('selDateLabel').textContent = selectedDate.replace(/-/g,'.');
+    renderDayList();
+  }
+
+  function renderDayList(){
+    const list = document.getElementById('eventList');
+    list.innerHTML = '';
+    const dayEvents = (events[selectedDate] || []).slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    if(dayEvents.length===0){
+      list.innerHTML = '<div class="empty-note">등록된 일정이 없어요.</div>';
+      return;
+    }
+    dayEvents.forEach(e=>{
+      const item = document.createElement('div');
+      item.className = 'event-item '+e.who;
+      const remindText = (e.remindMin!=null && e.remindMin!=='') ? ('🔔 '+(e.remindMin==0?'정시':(e.remindMin==1440?'하루 전':e.remindMin+'분 전'))) : '';
+      item.innerHTML =
+        '<div class="who">'+WHO_LABEL[e.who]+'</div>'
+        + '<div class="body">'
+        +   '<div class="title"></div>'
+        +   (e.time ? '<div class="time">'+e.time+(remindText?' · '+remindText:'')+'</div>' : '')
+        +   (e.memo ? '<div class="memo"></div>' : '')
+        + '</div>'
+        + '<button class="edit-btn">✎</button>'
+        + '<button class="del">×</button>';
+      item.querySelector('.title').textContent = e.title;
+      if(e.memo) item.querySelector('.memo').textContent = e.memo;
+      item.querySelector('.edit-btn').addEventListener('click', ()=>{
+        openEditModal(selectedDate, e);
+      });
+      item.querySelector('.del').addEventListener('click', ()=>{
+        events[selectedDate] = events[selectedDate].filter(x=>x.id!==e.id);
+        if(events[selectedDate].length===0) delete events[selectedDate];
+        persist();
+      });
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', ()=>{
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1);
+    render();
+  });
+  document.getElementById('nextBtn').addEventListener('click', ()=>{
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+    render();
+  });
+
+  const modalBg = document.getElementById('modalBg');
+  document.getElementById('addBtn').addEventListener('click', ()=>{
+    editingId = null;
+    document.getElementById('modalTitle').textContent = '새 일정';
+    selectedWho = 'me';
+    document.querySelectorAll('.who-select button').forEach(b=>b.classList.toggle('active', b.dataset.who==='me'));
+    document.getElementById('titleInput').value = '';
+    const now = new Date();
+    setWheelValue(hourWheel, now.getHours());
+    setWheelValue(minWheel, now.getMinutes());
+    document.getElementById('remindSelect').value = '';
+    document.getElementById('memoInput').value = '';
+    modalBg.classList.remove('hidden');
+  });
+  document.getElementById('cancelBtn').addEventListener('click', ()=> modalBg.classList.add('hidden'));
+  modalBg.addEventListener('click', (e)=>{ if(e.target===modalBg) modalBg.classList.add('hidden'); });
+
+  document.querySelectorAll('.who-select button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedWho = btn.dataset.who;
+      document.querySelectorAll('.who-select button').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+
+  const ITEM_H = 40;
+  function buildWheel(el, max){
+    let html = '<div class="wheel-spacer"></div>';
+    for(let i=0;i<max;i++){ html += '<div class="wheel-item" data-val="'+i+'">'+pad(i)+'</div>'; }
+    html += '<div class="wheel-spacer"></div>';
+    el.innerHTML = html;
+  }
+  function getWheelValue(el, max){
+    let idx = Math.round(el.scrollTop / ITEM_H);
+    if(idx<0) idx=0;
+    if(idx>max-1) idx=max-1;
+    return idx;
+  }
+  function setWheelValue(el, idx){
+    el.scrollTop = idx * ITEM_H;
+    highlightWheel(el);
+  }
+  function highlightWheel(el){
+    const max = el.id==='hourWheel' ? 24 : 60;
+    const idx = getWheelValue(el, max);
+    el.querySelectorAll('.wheel-item').forEach((item,i)=>{
+      item.classList.toggle('active', i===idx);
+    });
+  }
+  const hourWheel = document.getElementById('hourWheel');
+  const minWheel = document.getElementById('minWheel');
+  buildWheel(hourWheel, 24);
+  buildWheel(minWheel, 60);
+  let scrollRAF = null;
+  [hourWheel, minWheel].forEach(w=>{
+    w.addEventListener('scroll', ()=>{
+      if(scrollRAF) cancelAnimationFrame(scrollRAF);
+      scrollRAF = requestAnimationFrame(()=>highlightWheel(w));
+    });
+  });
+  setWheelValue(hourWheel, new Date().getHours());
+  setWheelValue(minWheel, new Date().getMinutes());
+
+  function openEditModal(dateKey, ev){
+    editingId = ev.id;
+    document.getElementById('modalTitle').textContent = '일정 수정';
+    selectedWho = ev.who;
+    document.querySelectorAll('.who-select button').forEach(b=>b.classList.toggle('active', b.dataset.who===ev.who));
+    document.getElementById('titleInput').value = ev.title;
+    const [hh, mm] = (ev.time||'00:00').split(':').map(Number);
+    setWheelValue(hourWheel, hh);
+    setWheelValue(minWheel, mm);
+    document.getElementById('remindSelect').value = (ev.remindMin!=null) ? String(ev.remindMin) : '';
+    document.getElementById('memoInput').value = ev.memo || '';
+    modalBg.classList.remove('hidden');
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', ()=>{
+    const title = document.getElementById('titleInput').value.trim();
+    if(!title) return;
+    const hh = getWheelValue(hourWheel, 24);
+    const mm = getWheelValue(minWheel, 60);
+    const time = pad(hh)+':'+pad(mm);
+    const remindRaw = document.getElementById('remindSelect').value;
+    const remindMin = (remindRaw!=='') ? parseInt(remindRaw,10) : null;
+    const memo = document.getElementById('memoInput').value.trim();
+    const list = events[selectedDate] ? events[selectedDate].slice() : [];
+    if(editingId){
+      const idx = list.findIndex(x=>x.id===editingId);
+      if(idx>-1){
+        list[idx] = {...list[idx], who: selectedWho, title, time, memo, remindMin};
+      }
+      // 알림을 다시 받을 수 있도록 수정 시 알림 완료 기록 초기화
+      notifiedIds.delete(editingId);
+      saveNotified(notifiedIds);
+    } else {
+      list.push({id: Date.now()+'-'+Math.random().toString(36).slice(2,7), who: selectedWho, title, time, memo, remindMin});
+    }
+    events[selectedDate] = list;
+    persist();
+    modalBg.classList.add('hidden');
+  });
+
+  // ── 알림(리마인더) 기능 ──
+  // 주의: 이 웹페이지가 브라우저에서 열려 있는 동안에만 작동합니다.
+  if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission();
+  }
+
+  function loadNotified(){
+    try{ return new Set(JSON.parse(localStorage.getItem('couple-calendar-notified')||'[]')); }
+    catch(e){ return new Set(); }
+  }
+  function saveNotified(set){
+    try{ localStorage.setItem('couple-calendar-notified', JSON.stringify([...set])); }catch(e){}
+  }
+  let notifiedIds = loadNotified();
+
+  function checkReminders(){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    // 오늘과 다음 이틀치 일정만 확인 (하루 전 알림까지 커버)
+    for(let offset=0; offset<=2; offset++){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+offset);
+      const dk = keyFor(d);
+      const list = events[dk] || [];
+      list.forEach(e=>{
+        if(!e.time || e.remindMin==null) return;
+        if(notifiedIds.has(e.id)) return;
+        const [hh,mm] = e.time.split(':').map(Number);
+        const eventDt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm);
+        const remindDt = new Date(eventDt.getTime() - e.remindMin*60000);
+        if(now >= remindDt && now < eventDt){
+          new Notification('📅 ' + e.title, {
+            body: WHO_LABEL[e.who] + ' · ' + e.time + (e.memo ? ' · ' + e.memo : '')
+          });
+          notifiedIds.add(e.id);
+          saveNotified(notifiedIds);
+        }
+      });
+    }
+  }
+  setInterval(checkReminders, 20000);
+
+  // ── 연도 선택 팝업 ──
+  const yearModalBg = document.getElementById('yearModalBg');
+  const yearGrid = document.getElementById('yearGrid');
+  const YEAR_MIN = new Date().getFullYear() - 10;
+  const YEAR_MAX = new Date().getFullYear() + 30;
+  function buildYearGrid(){
+    yearGrid.innerHTML = '';
+    for(let y=YEAR_MIN; y<=YEAR_MAX; y++){
+      const btn = document.createElement('button');
+      btn.textContent = y;
+      if(y===cursor.getFullYear()) btn.classList.add('active');
+      btn.addEventListener('click', ()=>{
+        cursor = new Date(y, cursor.getMonth(), 1);
+        yearModalBg.classList.add('hidden');
+        render();
+      });
+      yearGrid.appendChild(btn);
+    }
+  }
+  document.getElementById('yearBtn').addEventListener('click', ()=>{
+    buildYearGrid();
+    yearModalBg.classList.remove('hidden');
+    const activeBtn = yearGrid.querySelector('button.active');
+    if(activeBtn) activeBtn.scrollIntoView({block:'center'});
+  });
+  document.getElementById('yearCancelBtn').addEventListener('click', ()=> yearModalBg.classList.add('hidden'));
+  yearModalBg.addEventListener('click', (e)=>{ if(e.target===yearModalBg) yearModalBg.classList.add('hidden'); });
+
+  initData();
+</script>
+</body>
+</html>
